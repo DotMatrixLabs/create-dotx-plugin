@@ -1,0 +1,39 @@
+{
+  "name": "@dotmatrixlabs/create-dotx-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Scaffold a Dot X plugin project",
+  "bin": {
+    "create-dotx-plugin": "bin/create-dotx-plugin.js"
+  },
+  "files": [
+    "bin/",
+    "README.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Frogbyte-io/dot-x.git",
+    "directory": "create-dotx-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/Frogbyte-io/dot-x/issues"
+  },
+  "homepage": "https://github.com/Frogbyte-io/dot-x/tree/main/create-dotx-plugin",
+  "keywords": [
+    "dotx",
+    "plugin",
+    "scaffold",
+    "cli"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dotxPluginSdkVersion": "^1.0.0",
+  "dependencies": {
+    "@clack/prompts": "^1.2.0"
+  }
+}
