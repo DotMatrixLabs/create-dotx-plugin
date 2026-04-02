@@ -7,6 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
+import { execSync } from 'child_process';
 import * as p from '@clack/prompts';
 
 const require = createRequire(import.meta.url);
@@ -448,10 +449,15 @@ async function promptInstallSkill() {
 
   if (p.isCancel(install) || !install) return;
 
-  p.note(
-    'npx skills add DotMatrixLabs/create-dotx-plugin/dot-x-plugin-dev',
-    'Run this command to install'
-  );
+  const spinner = p.spinner();
+  spinner.start('Installing dot-x-plugin-dev skill…');
+  try {
+    execSync('npx skills add DotMatrixLabs/create-dotx-plugin/dot-x-plugin-dev', { stdio: 'pipe' });
+    spinner.stop('Skill installed successfully');
+  } catch (err) {
+    spinner.stop('Skill installation failed');
+    p.note(err.stderr?.toString() ?? String(err), 'Error');
+  }
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
