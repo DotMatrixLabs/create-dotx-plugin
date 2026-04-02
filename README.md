@@ -10,7 +10,7 @@ Run without any arguments to start the interactive guided setup:
 npx @dotmatrixlabs/create-dotx-plugin
 ```
 
-The TUI will walk you through choosing a plugin name, ID, and runtime (Deno or Node). A project folder is created automatically based on the plugin ID.
+The TUI will walk you through choosing a plugin name, ID, runtime (Deno or Node), and whether to scaffold into the current directory or a new folder based on the plugin ID.
 
 ### CLI flags (for CI / automation)
 
@@ -24,6 +24,7 @@ npx @dotmatrixlabs/create-dotx-plugin --name "My Plugin" --node
 - `--id <id>`: Override the generated plugin ID (kebab-case)
 - `--deno` (default): Deno + TypeScript template
 - `--node`: Node + TypeScript + esbuild template with `plugin.zip` packaging
+- `--here`: Scaffold into the current directory instead of creating a new folder
 - `--force`: Overwrite existing files
 
 ## Generated Projects
@@ -43,6 +44,14 @@ Deno templates import `@dotmatrixlabs/dotx-plugin-sdk` through Deno's `npm:` sup
 ```bash
 npx @dotmatrixlabs/create-dotx-plugin --name "My Plugin" --node
 cd my-plugin
+npm install
+npm start
+```
+
+To scaffold directly into the current directory:
+
+```bash
+npx @dotmatrixlabs/create-dotx-plugin --name "My Plugin" --node --here
 npm install
 npm start
 ```

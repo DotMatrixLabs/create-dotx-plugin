@@ -15,12 +15,13 @@ const { dotxPluginSdkVersion: SDK_PACKAGE_VERSION } = require('../package.json')
 // ── CLI arg parsing (still supported for CI) ─────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { deno: undefined, node: undefined, force: false };
+  const args = { deno: undefined, node: undefined, force: false, here: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--deno') args.deno = true, args.node = false;
     else if (a === '--node') args.node = true, args.deno = false;
     else if (a === '--force') args.force = true;
+    else if (a === '--here' || a === '--current-dir') args.here = true;
     else if (a === '--name') args.name = argv[++i];
     else if (a === '--id') args.id = argv[++i];
     else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
@@ -42,6 +43,7 @@ Options:
   --id   <id>     Plugin identifier (kebab-case)
   --node          Use Node + esbuild template
   --deno          Use Deno template (default)
+  --here          Scaffold into the current directory
   --force         Overwrite existing files
   -h, --help      Show this help
 `);
@@ -96,6 +98,14 @@ async function runInteractive(cliArgs) {
             { value: 'node', label: 'Node', hint: 'Node + esbuild, npm ecosystem' },
           ],
         }),
+      location: () =>
+        p.select({
+          message: 'Where should the plugin be created?',
+          options: [
+            { value: 'new-folder', label: 'New folder', hint: 'Create a folder based on the plugin ID' },
+            { value: 'current-dir', label: 'Current directory', hint: 'Write the scaffold into this folder' },
+          ],
+        }),
     },
     {
       onCancel: () => {
@@ -106,10 +116,11 @@ async function runInteractive(cliArgs) {
   );
 
   const id = toId(project.id);
-  const targetDir = path.join(process.cwd(), id);
+  const useCurrentDir = project.location === 'current-dir';
+  const targetDir = useCurrentDir ? process.cwd() : path.join(process.cwd(), id);
 
-  // Check if folder already exists
-  if (fs.existsSync(targetDir) && !cliArgs.force) {
+  // Check if the generated folder already exists and is non-empty.
+  if (!useCurrentDir && fs.existsSync(targetDir) && !cliArgs.force) {
     const existing = fs.readdirSync(targetDir);
     if (existing.length > 0) {
       p.cancel(`Directory ${id} already exists and is not empty (use --force to overwrite)`);
@@ -117,7 +128,14 @@ async function runInteractive(cliArgs) {
     }
   }
 
-  return { name: project.name, id, runtime: project.runtime, targetDir, force: cliArgs.force };
+  return {
+    name: project.name,
+    id,
+    runtime: project.runtime,
+    targetDir,
+    force: cliArgs.force,
+    installInCurrentDir: useCurrentDir,
+  };
 }
 
 // ── Templates ────────────────────────────────────────────────────────────────
@@ -331,7 +349,7 @@ runPlugin(HelloWorld);
 
 // ── Scaffold ─────────────────────────────────────────────────────────────────
 
-function scaffold({ name, id, runtime, targetDir, force }) {
+function scaffold({ name, id, runtime, targetDir, force, installInCurrentDir = false }) {
   const useNode = runtime === 'node';
   const template = useNode ? nodeTemplates({ id, name }) : denoTemplates({ id, name });
 
@@ -344,20 +362,23 @@ function scaffold({ name, id, runtime, targetDir, force }) {
     process.exit(1);
   }
 
-  const folderName = path.basename(targetDir);
   if (useNode) {
     p.note(
-      `cd ${folderName}\nnpm install\nnpm start`,
+      installInCurrentDir ? 'npm install\nnpm start' : `cd ${path.basename(targetDir)}\nnpm install\nnpm start`,
       'Next steps'
     );
   } else {
     p.note(
-      `cd ${folderName}\ndeno task start`,
+      installInCurrentDir ? 'deno task start' : `cd ${path.basename(targetDir)}\ndeno task start`,
       'Next steps'
     );
   }
 
-  p.outro(`Scaffolded Dot X plugin in ${folderName}/`);
+  p.outro(
+    installInCurrentDir
+      ? `Scaffolded Dot X plugin in ${targetDir}`
+      : `Scaffolded Dot X plugin in ${path.basename(targetDir)}/`
+  );
 }
 
 // ── Skill prompt ─────────────────────────────────────────────────────────────
@@ -382,14 +403,14 @@ async function main() {
   const args = parseArgs(process.argv);
 
   // If enough args provided, run non-interactively (backwards compat / CI)
-  const hasExplicitArgs = args.name || args.id || args.node === true || args.deno === true;
+  const hasExplicitArgs = args.name || args.id || args.node === true || args.deno === true || args.here;
 
   if (hasExplicitArgs) {
     const name = args.name || 'Hello World Plugin';
     const id = toId(args.id || name);
     const runtime = args.node ? 'node' : 'deno';
-    const targetDir = path.join(process.cwd(), id);
-    scaffold({ name, id, runtime, targetDir, force: args.force });
+    const targetDir = args.here ? process.cwd() : path.join(process.cwd(), id);
+    scaffold({ name, id, runtime, targetDir, force: args.force, installInCurrentDir: args.here });
   } else {
     // Interactive TUI
     const options = await runInteractive(args);
