@@ -1,6 +1,6 @@
 {
   "name": "@dotmatrixlabs/create-dotx-plugin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "Scaffold a Dot X plugin project",
   "bin": {
@@ -16,13 +16,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Frogbyte-io/dot-x.git",
-    "directory": "create-dotx-plugin"
+    "url": "git+https://github.com/DotMatrixLabs/create-dotx-plugin.git"
   },
   "bugs": {
-    "url": "https://github.com/Frogbyte-io/dot-x/issues"
+    "url": "https://github.com/DotMatrixLabs/create-dotx-plugin/issues"
   },
-  "homepage": "https://github.com/Frogbyte-io/dot-x/tree/main/create-dotx-plugin",
+  "homepage": "https://github.com/DotMatrixLabs/create-dotx-plugin#readme",
   "keywords": [
     "dotx",
     "plugin",
