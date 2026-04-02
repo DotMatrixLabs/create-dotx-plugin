@@ -196,7 +196,64 @@ jobs:
 }
 
 function denoTemplates(meta) {
-  const README = `# ${meta.name}\n\nA minimal plugin for Dot X. This template includes a Deno + TypeScript setup by default.\n\n## Prerequisites\n- Dot X application running (starts the local plugin server)\n- Deno 1.41+ (or Node 16+ if using the Node template)\n\n## Quick start (Deno)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n deno task start\n\nThis runs \`main.ts\` with all permissions and connects to the Dot X plugin server.\n\n## Development workflow\n- Edit \`main.ts\` and save; restart the task to pick up changes\n- Watch logs in the Dot X app and in \`plugin.log\` (created next to your files)\n- Implement your plugin logic inside the \`onLoad()\` method\n\n### Common tasks\n- Start: \`deno task start\`\n- Lint (optional): \`deno lint\`\n- Format (optional): \`deno fmt\`\n\n## Optional: Node + esbuild\nIf you prefer Node, install deps and build:\n\n\n\n\n\n\n\n\n\n\n\n\n\n npm install\n npm run build\n npm start\n\nRecommended when you scaffolded with the \`--node\` flag.\n\n## File structure\n\n\n\n\n\n\n\n\n\n\n manifest.json   # Plugin metadata (id, name, entry file)\n main.ts         # Plugin entrypoint (uses runPlugin from the SDK)\n deno.json       # Deno task (start)\n .gitignore      # Useful ignores (node_modules, plugin.log)\n README.md       # This file\n\n## Troubleshooting\n- Ensure the Dot X app is running before starting the plugin\n- If connection fails, the SDK will retry and print detailed hints\n- Check firewall/antivirus if timeouts persist\n\n## Learn more\n- Getting Started: <DOCS_BASE_URL>/plugin-sdk/getting-started/first-plugin\n- Examples: <DOCS_BASE_URL>/plugin-sdk/examples\n- Manifest reference: <DOCS_BASE_URL>/plugin-sdk/manifest\n- SDK Reference: <DOCS_BASE_URL>/plugin-sdk/sdk-reference\n`;
+  const README = `# ${meta.name}
+
+A minimal plugin for Dot X. This template includes a Deno + TypeScript setup by default.
+
+## Prerequisites
+- Dot X application running (starts the local plugin server)
+- Deno 1.41+ (or Node 16+ if using the Node template)
+
+## Quick start (Deno)
+
+\`\`\`bash
+deno task start
+\`\`\`
+
+This runs \`main.ts\` with all permissions and connects to the Dot X plugin server.
+
+## Development workflow
+- Edit \`main.ts\` and save; restart the task to pick up changes
+- Watch logs in the Dot X app and in \`plugin.log\` (created next to your files)
+- Implement your plugin logic inside the \`onLoad()\` method
+
+### Common tasks
+- Start: \`deno task start\`
+- Lint (optional): \`deno lint\`
+- Format (optional): \`deno fmt\`
+
+## Optional: Node + esbuild
+If you prefer Node, install deps and build:
+
+\`\`\`bash
+npm install
+npm run build
+npm start
+\`\`\`
+
+Recommended when you scaffolded with the \`--node\` flag.
+
+## File structure
+
+\`\`\`
+manifest.json   # Plugin metadata (id, name, entry file)
+main.ts         # Plugin entrypoint (uses runPlugin from the SDK)
+deno.json       # Deno task (start)
+.gitignore      # Useful ignores (node_modules, plugin.log)
+README.md       # This file
+\`\`\`
+
+## Troubleshooting
+- Ensure the Dot X app is running before starting the plugin
+- If connection fails, the SDK will retry and print detailed hints
+- Check firewall/antivirus if timeouts persist
+
+## Learn more
+- [Getting Started](https://docs.dotmatrixlabs.com/plugin-sdk/getting-started/first-plugin)
+- [Examples](https://docs.dotmatrixlabs.com/plugin-sdk/examples)
+- [Manifest reference](https://docs.dotmatrixlabs.com/plugin-sdk/manifest)
+- [SDK Reference](https://docs.dotmatrixlabs.com/plugin-sdk/sdk-reference)
+`;
 
   return {
     'manifest.json': JSON.stringify({
