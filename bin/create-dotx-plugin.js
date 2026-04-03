@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import * as p from '@clack/prompts';
 
 const require = createRequire(import.meta.url);
@@ -67,6 +67,14 @@ function writeFileSafe(filePath, content, force) {
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(filePath, content);
+}
+
+function spawnNpx(args, options = {}) {
+  if (process.platform === 'win32') {
+    return spawnSync(`npx ${args.join(' ')}`, { ...options, shell: true });
+  }
+
+  return spawnSync('npx', args, options);
 }
 
 // ── Interactive TUI ──────────────────────────────────────────────────────────
@@ -449,14 +457,15 @@ async function promptInstallSkill() {
 
   if (p.isCancel(install) || !install) return;
 
-  const spinner = p.spinner();
-  spinner.start('Installing dot-x-plugin-dev skill…');
-  try {
-    execSync('npx skills add DotMatrixLabs/create-dotx-plugin/dot-x-plugin-dev', { stdio: 'pipe' });
-    spinner.stop('Skill installed successfully');
-  } catch (err) {
-    spinner.stop('Skill installation failed');
-    p.note(err.stderr?.toString() ?? String(err), 'Error');
+  const result = spawnNpx(['skills', 'add', 'DotMatrixLabs/create-dotx-plugin/dot-x-plugin-dev'], { stdio: 'inherit' });
+
+  if (result.error) {
+    p.log.error(`Skill installation failed: ${result.error.message}`);
+    return;
+  }
+
+  if (result.status !== 0) {
+    p.log.error(`Skill installation failed${typeof result.status === 'number' ? ` (exit code ${result.status})` : ''}`);
   }
 }
 
