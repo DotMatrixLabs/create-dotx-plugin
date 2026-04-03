@@ -233,6 +233,25 @@ this.actionmapper
   });
 ```
 
+`setAutoPersist(true)` restores which channels are selected across restarts, but it does not replay `onClick()` during startup. If your plugin keeps in-memory state derived from button clicks, restore it explicitly from `getSelectedMap()` right after registration:
+
+```typescript
+const button = this.actionmapper
+  .addSystemUtilButton('my-action')
+  .onClick(({ selected, channel }) => {
+    if (selected) this.activeChannels.add(channel);
+    else this.activeChannels.delete(channel);
+  })
+  .setAutoPersist(true);
+
+// Restore persisted state - onClick is never replayed on startup
+for (const [ch, selected] of Object.entries(button.getSelectedMap())) {
+  if (selected) this.activeChannels.add(Number(ch));
+}
+```
+
+`getSelectedMap()` returns channel keys as strings, so cast with `Number(ch)` if your sets or maps use numeric keys.
+
 ---
 
 ## Development Workflow
