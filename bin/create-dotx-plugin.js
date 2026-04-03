@@ -2,7 +2,7 @@
 // Minimal-deps NPX scaffolder for Dot X plugins
 // Usage: npx @dotmatrixlabs/create-dotx-plugin
 //   Interactive TUI guides you through setup.
-//   Flags (for CI / non-interactive): --name <n> --id <id> --deno|--node --force
+//   Flags (for CI / non-interactive): --name <n> --id <id> --deno|--node --no-release-workflow --force
 
 import fs from 'fs';
 import path from 'path';
@@ -16,11 +16,18 @@ const { dotxPluginSdkVersion: SDK_PACKAGE_VERSION } = require('../package.json')
 // ── CLI arg parsing (still supported for CI) ─────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { deno: undefined, node: undefined, force: false, here: false };
+  const args = {
+    deno: undefined,
+    node: undefined,
+    force: false,
+    here: false,
+    includeReleaseWorkflow: undefined
+  };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--deno') args.deno = true, args.node = false;
     else if (a === '--node') args.node = true, args.deno = false;
+    else if (a === '--no-release-workflow') args.includeReleaseWorkflow = false;
     else if (a === '--force') args.force = true;
     else if (a === '--here' || a === '--current-dir') args.here = true;
     else if (a === '--name') args.name = argv[++i];
@@ -44,6 +51,7 @@ Options:
   --id   <id>     Plugin identifier (kebab-case)
   --node          Use Node + esbuild template
   --deno          Use Deno template (default)
+  --no-release-workflow  Skip the GitHub release workflow in the generated project
   --here          Scaffold into the current directory
   --force         Overwrite existing files
   -h, --help      Show this help
@@ -107,6 +115,11 @@ async function runInteractive(cliArgs) {
             { value: 'node', label: 'Node', hint: 'Node + esbuild, npm ecosystem' },
           ],
         }),
+      includeReleaseWorkflow: () =>
+        p.confirm({
+          message: 'Include the GitHub Actions release workflow?',
+          initialValue: cliArgs.includeReleaseWorkflow ?? true,
+        }),
       location: () =>
         p.select({
           message: 'Where should the plugin be created?',
@@ -144,67 +157,31 @@ async function runInteractive(cliArgs) {
     targetDir,
     force: cliArgs.force,
     installInCurrentDir: useCurrentDir,
+    includeReleaseWorkflow: project.includeReleaseWorkflow,
   };
 }
 
 // ── Templates ────────────────────────────────────────────────────────────────
 
-function nodeReleaseWorkflow() {
-  return `name: Release Plugin
-
-on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  id-token: write
-
-jobs:
-  build-release:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Verify release version
-        run: npm run release:verify-version
-        env:
-          RELEASE_TAG: \${{ github.ref_type == 'tag' && github.ref_name || '' }}
-
-      - name: Build release package
-        run: npm run package
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: plugin-package
-          path: dist/plugin.zip
-          if-no-files-found: error
-
-      - name: Publish GitHub Release asset
-        if: github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/plugin.zip
-          fail_on_unmatched_files: true
-          generate_release_notes: true
-`;
+function releaseWorkflow() {
+  return fs.readFileSync(new URL('../actions/.github/workflows/release-plugin.yml', import.meta.url), 'utf8');
 }
 
-function denoTemplates(meta) {
+function denoTemplates(meta, { includeReleaseWorkflow = true } = {}) {
+  const releaseSection = includeReleaseWorkflow ? `
+
+## GitHub Releases
+
+This template includes a GitHub Actions workflow at \`.github/workflows/release-plugin.yml\`.
+
+Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide the version, and GitHub Actions will:
+
+- resolve the release version from the tag or workflow input
+- validate marketplace-required manifest fields
+- create \`dist/plugin.zip\`
+- upload \`plugin.zip\` to the GitHub Release
+` : '';
+
   const README = `# ${meta.name}
 
 A minimal plugin for Dot X. This template includes a Deno + TypeScript setup by default.
@@ -228,26 +205,26 @@ This runs \`main.ts\` with all permissions and connects to the Dot X plugin serv
 
 ### Common tasks
 - Start: \`deno task start\`
+- Package: \`deno task package\`
 - Lint (optional): \`deno lint\`
 - Format (optional): \`deno fmt\`
 
-## Optional: Node + esbuild
-If you prefer Node, install deps and build:
+## Marketplace Packaging
 
 \`\`\`bash
-npm install
-npm run build
-npm start
+deno task package
 \`\`\`
 
-Recommended when you scaffolded with the \`--node\` flag.
+This creates \`dist/plugin.zip\` with \`manifest.json\` and the file declared by \`manifest.main\`, plus any extra paths listed in \`manifest.json\` under \`packaging.include\`.
+
+${releaseSection}
 
 ## File structure
 
 \`\`\`
 manifest.json   # Plugin metadata (id, name, entry file)
 main.ts         # Plugin entrypoint (uses runPlugin from the SDK)
-deno.json       # Deno task (start)
+deno.json       # Deno tasks (start, package)
 .gitignore      # Useful ignores (node_modules, plugin.log)
 README.md       # This file
 \`\`\`
@@ -264,7 +241,7 @@ README.md       # This file
 - [SDK Reference](https://docs.dotmatrixlabs.com/plugin-sdk/sdk-reference)
 `;
 
-  return {
+  const files = {
     'manifest.json': JSON.stringify({
       id: meta.id,
       name: meta.name,
@@ -285,13 +262,19 @@ class HelloWorld extends Plugin {
 
 runPlugin(HelloWorld);
 `,
-    'deno.json': JSON.stringify({ tasks: { start: 'deno run --allow-all main.ts' }, nodeModulesDir: 'auto' }, null, 2) + '\n',
+    'deno.json': JSON.stringify({ tasks: { start: 'deno run --allow-all main.ts', package: 'npx @dotmatrixlabs/dotx-plugin-sdk package' }, nodeModulesDir: 'auto' }, null, 2) + '\n',
     '.gitignore': `node_modules\nplugin.log\n.DS_Store\n`,
     'README.md': README
   };
+
+  if (includeReleaseWorkflow) {
+    files['.github/workflows/release-plugin.yml'] = releaseWorkflow();
+  }
+
+  return files;
 }
 
-function nodeTemplates(meta) {
+function nodeTemplates(meta, { includeReleaseWorkflow = true } = {}) {
   const pkg = {
     name: meta.id,
     version: '0.1.0',
@@ -311,6 +294,28 @@ function nodeTemplates(meta) {
       'esbuild': '^0.25.6'
     }
   };
+
+  const releaseSection = includeReleaseWorkflow ? `
+
+## GitHub Releases
+
+This template includes a GitHub Actions workflow at \`.github/workflows/release-plugin.yml\`.
+
+Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide the version, and GitHub Actions will:
+
+- verify the tag matches \`package.json\` and \`manifest.json\`
+- validate marketplace-required manifest fields
+- build the file referenced by \`manifest.main\`
+- create \`dist/plugin.zip\`
+- upload \`plugin.zip\` to the GitHub Release
+
+Recommended release flow:
+
+1. update \`manifest.json\` and \`package.json\` to the release version
+2. commit and push your changes
+3. push a tag such as \`v0.1.0\`
+4. let GitHub Actions build and attach \`dist/plugin.zip\` to the release
+` : '';
 
   const README = `# ${meta.name}
 
@@ -355,29 +360,11 @@ Example:
 }
 \`\`\`
 
-## GitHub Releases
-
-This template includes a GitHub Actions workflow at \`.github/workflows/release-plugin.yml\`.
-
-Push a version tag such as \`v0.1.0\` and GitHub Actions will:
-
-- verify the tag matches \`package.json\` and \`manifest.json\`
-- validate marketplace-required manifest fields
-- build the file referenced by \`manifest.main\`
-- create \`dist/plugin.zip\`
-- upload \`plugin.zip\` to the GitHub Release
-
-Recommended release flow:
-
-1. update \`manifest.json\` and \`package.json\` to the release version
-2. commit and push your changes
-3. push a tag such as \`v0.1.0\`
-4. let GitHub Actions build and attach \`dist/plugin.zip\` to the release
-
+${releaseSection}
 See Deno alternative in docs if preferred.
 `;
 
-  return {
+  const files = {
     'manifest.json': JSON.stringify({
       id: meta.id,
       name: meta.name,
@@ -408,16 +395,23 @@ runPlugin(HelloWorld);
         strict: true,
         esModuleInterop: true
       }
-    }, null, 2) + '\n',
-    '.github/workflows/release-plugin.yml': nodeReleaseWorkflow()
+    }, null, 2) + '\n'
   };
+
+  if (includeReleaseWorkflow) {
+    files['.github/workflows/release-plugin.yml'] = releaseWorkflow();
+  }
+
+  return files;
 }
 
 // ── Scaffold ─────────────────────────────────────────────────────────────────
 
-function scaffold({ name, id, runtime, targetDir, force, installInCurrentDir = false }) {
+function scaffold({ name, id, runtime, targetDir, force, installInCurrentDir = false, includeReleaseWorkflow = true }) {
   const useNode = runtime === 'node';
-  const template = useNode ? nodeTemplates({ id, name }) : denoTemplates({ id, name });
+  const template = useNode
+    ? nodeTemplates({ id, name }, { includeReleaseWorkflow })
+    : denoTemplates({ id, name }, { includeReleaseWorkflow });
 
   try {
     Object.entries(template).forEach(([file, content]) => {
@@ -482,7 +476,15 @@ async function main() {
     const id = toId(args.id || name);
     const runtime = args.node ? 'node' : 'deno';
     const targetDir = args.here ? process.cwd() : path.join(process.cwd(), id);
-    scaffold({ name, id, runtime, targetDir, force: args.force, installInCurrentDir: args.here });
+    scaffold({
+      name,
+      id,
+      runtime,
+      targetDir,
+      force: args.force,
+      installInCurrentDir: args.here,
+      includeReleaseWorkflow: args.includeReleaseWorkflow ?? true
+    });
   } else {
     // Interactive TUI
     const options = await runInteractive(args);

@@ -10,7 +10,7 @@ Run without any arguments to start the interactive guided setup:
 npx @dotmatrixlabs/create-dotx-plugin
 ```
 
-The TUI will walk you through choosing a plugin name, ID, runtime (Deno or Node), and whether to scaffold into the current directory or a new folder based on the plugin ID.
+The TUI will walk you through choosing a plugin name, ID, runtime (Deno or Node), whether to include the GitHub release workflow, and whether to scaffold into the current directory or a new folder based on the plugin ID.
 
 ### CLI flags (for CI / automation)
 
@@ -24,20 +24,29 @@ npx @dotmatrixlabs/create-dotx-plugin --name "My Plugin" --node
 - `--id <id>`: Override the generated plugin ID (kebab-case)
 - `--deno` (default): Deno + TypeScript template
 - `--node`: Node + TypeScript + esbuild template with `plugin.zip` packaging
+- `--no-release-workflow`: Skip `.github/workflows/release-plugin.yml` in the generated project
 - `--here`: Scaffold into the current directory instead of creating a new folder
 - `--force`: Overwrite existing files
 
 ## Generated Projects
 
+Both runtimes include an optional GitHub Actions release workflow by default:
+
+- `.github/workflows/release-plugin.yml`
+
 Node templates depend on `@dotmatrixlabs/dotx-plugin-sdk` from npm and include:
 
 - `npm run build`
 - `npm run package`
-- `.github/workflows/release-plugin.yml`
 - manifest-driven packaging via `manifest.json -> packaging.include`
 - no special local SDK path wiring; the generated project consumes the published `@dotmatrixlabs/dotx-plugin-sdk` package directly
 
-Deno templates import `@dotmatrixlabs/dotx-plugin-sdk` through Deno's `npm:` support.
+Deno templates import `@dotmatrixlabs/dotx-plugin-sdk` through Deno's `npm:` support and include:
+
+- `deno task start`
+- `deno task package`
+
+The shared release workflow auto-detects whether the project uses Deno or Node.
 
 ## Typical Node Workflow
 
@@ -60,6 +69,20 @@ To create a marketplace package:
 
 ```bash
 npm run package
+```
+
+## Typical Deno Workflow
+
+```bash
+npx @dotmatrixlabs/create-dotx-plugin --name "My Plugin"
+cd my-plugin
+deno task start
+```
+
+To create a marketplace package:
+
+```bash
+deno task package
 ```
 
 ## AI Skill

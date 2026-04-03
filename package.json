@@ -7,6 +7,7 @@
     "create-dotx-plugin": "bin/create-dotx-plugin.js"
   },
   "files": [
+    "actions/",
     "bin/",
     "README.md",
     "package.json"
