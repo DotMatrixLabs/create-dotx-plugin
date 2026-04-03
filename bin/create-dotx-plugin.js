@@ -204,7 +204,8 @@ This runs \`main.ts\` with all permissions and connects to the Dot X plugin serv
 - Implement your plugin logic inside the \`onLoad()\` method
 
 ### Common tasks
-- Start: \`deno task start\`
+- Start dev: \`deno task start\`
+- Build: \`deno task build\`
 - Package: \`deno task package\`
 - Lint (optional): \`deno lint\`
 - Format (optional): \`deno fmt\`
@@ -215,7 +216,7 @@ This runs \`main.ts\` with all permissions and connects to the Dot X plugin serv
 deno task package
 \`\`\`
 
-This creates \`dist/plugin.zip\` with \`manifest.json\` and the file declared by \`manifest.main\`, plus any extra paths listed in \`manifest.json\` under \`packaging.include\`.
+This bundles \`main.ts\` and all dependencies into \`dist/main.js\` using esbuild, then creates \`dist/plugin.zip\`. The zip is fully self-contained
 
 ${releaseSection}
 
@@ -225,7 +226,7 @@ ${releaseSection}
 manifest.json   # Plugin metadata (id, name, entry file)
 main.ts         # Plugin entrypoint (uses runPlugin from the SDK)
 deno.json       # Deno tasks (start, package)
-.gitignore      # Useful ignores (node_modules, plugin.log)
+.gitignore      # Useful ignores (dist/, plugin.log, node_modules/)
 README.md       # This file
 \`\`\`
 
@@ -250,7 +251,7 @@ README.md       # This file
       author: '',
       dotxVersion: '>=1.0.0',
       permissions: [],
-      main: 'main.ts'
+      main: 'dist/main.js'
     }, null, 2) + '\n',
     'main.ts': `import Plugin, { runPlugin } from "npm:@dotmatrixlabs/dotx-plugin-sdk";
 
@@ -262,8 +263,14 @@ class HelloWorld extends Plugin {
 
 runPlugin(HelloWorld);
 `,
-    'deno.json': JSON.stringify({ tasks: { start: 'deno run --allow-all main.ts', package: 'npx @dotmatrixlabs/dotx-plugin-sdk package' }, nodeModulesDir: 'auto' }, null, 2) + '\n',
-    '.gitignore': `node_modules\nplugin.log\n.DS_Store\n`,
+    'deno.json': JSON.stringify({
+      tasks: {
+        start: 'deno run --allow-all main.ts',
+        build: 'deno run --allow-all --node-modules-dir=none npm:esbuild main.ts --bundle --platform=node --format=cjs --outfile=dist/main.js',
+        package: 'deno task build && npx @dotmatrixlabs/dotx-plugin-sdk package'
+      }
+    }, null, 2) + '\n',
+    '.gitignore': `dist/\nplugin.log\n.DS_Store\n`,
     'README.md': README
   };
 
