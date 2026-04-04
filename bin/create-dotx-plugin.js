@@ -267,7 +267,7 @@ runPlugin(HelloWorld);
       tasks: {
         start: 'deno run --allow-all main.ts',
         build: 'deno run --allow-all --node-modules-dir=none npm:esbuild main.ts --bundle --platform=node --format=esm --external:npm:@dotmatrixlabs/dotx-plugin-sdk --outfile=dist/main.js',
-        package: 'deno task build && npx @dotmatrixlabs/dotx-plugin-sdk package'
+        package: 'deno task build && npx @dotmatrixlabs/dotx-plugin-sdk@latest package'
       }
     }, null, 2) + '\n',
     '.gitignore': `dist/\nplugin.log\n.DS_Store\n`,

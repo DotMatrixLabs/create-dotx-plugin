@@ -68,7 +68,7 @@ jobs:
         run: npm install
 
       - name: Verify release version
-        run: npx @dotmatrixlabs/dotx-plugin-sdk verify-release
+        run: npx @dotmatrixlabs/dotx-plugin-sdk@latest verify-release
         env:
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
 
@@ -87,7 +87,7 @@ jobs:
         run: deno task build
 
       - name: Package plugin
-        run: npx @dotmatrixlabs/dotx-plugin-sdk package
+        run: npx @dotmatrixlabs/dotx-plugin-sdk@latest package
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
