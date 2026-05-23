@@ -178,19 +178,19 @@ Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide 
 
 - resolve the release version from the tag or workflow input
 - validate marketplace-required manifest fields
-- create \`dist/${meta.id}.dotx\`
-- upload \`${meta.id}.dotx\` to the GitHub Release
+- create \`dist/${meta.id}.dotxplugin\`
+- upload \`${meta.id}.dotxplugin\` to the GitHub Release
 ` : '';
 
   const README = `# ${meta.name}
 
-A minimal plugin for Dot X. This template includes a Deno + TypeScript setup by default.
+A minimal plugin for Dot X (Deno + TypeScript).
 
 ## Prerequisites
 - Dot X application running (starts the local plugin server)
-- Deno 1.41+ (or Node 16+ if using the Node template)
+- Deno 1.41+
 
-## Quick start (Deno)
+## Quick start
 
 \`\`\`bash
 deno task start
@@ -204,11 +204,14 @@ This runs \`main.ts\` with all permissions and connects to the Dot X plugin serv
 - Implement your plugin logic inside the \`onLoad()\` method
 
 ### Common tasks
-- Start dev: \`deno task start\`
-- Build: \`deno task build\`
-- Package: \`deno task package\`
-- Lint (optional): \`deno lint\`
-- Format (optional): \`deno fmt\`
+
+| Command | What it does |
+|---|---|
+| \`deno task start\` | Run \`main.ts\` directly (no build step) |
+| \`deno task build\` | Bundle \`main.ts\` → \`dist/main.js\` via esbuild |
+| \`deno task package\` | Build and create \`dist/${meta.id}.dotxplugin\` |
+| \`deno lint\` | Lint (optional) |
+| \`deno fmt\` | Format (optional) |
 
 ## Marketplace Packaging
 
@@ -216,17 +219,15 @@ This runs \`main.ts\` with all permissions and connects to the Dot X plugin serv
 deno task package
 \`\`\`
 
-This bundles \`main.ts\` and all dependencies into \`dist/main.js\` using esbuild, then creates \`dist/${meta.id}.dotx\`. The file is fully self-contained
-
+This bundles \`main.ts\` and all dependencies into \`dist/main.js\` using esbuild, then creates \`dist/${meta.id}.dotxplugin\`. The archive is fully self-contained and ready to upload to the Dot X Marketplace.
 ${releaseSection}
-
 ## File structure
 
 \`\`\`
 manifest.json   # Plugin metadata (id, name, entry file)
 main.ts         # Plugin entrypoint (uses runPlugin from the SDK)
-deno.json       # Deno tasks (start, package)
-.gitignore      # Useful ignores (dist/, plugin.log, node_modules/)
+deno.json       # Deno tasks (start, build, package)
+.gitignore      # Useful ignores (dist/, plugin.log)
 README.md       # This file
 \`\`\`
 
@@ -313,28 +314,26 @@ Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide 
 - verify the tag matches \`package.json\` and \`manifest.json\`
 - validate marketplace-required manifest fields
 - build the file referenced by \`manifest.main\`
-- create \`dist/${meta.id}.dotx\`
-- upload \`${meta.id}.dotx\` to the GitHub Release
+- create \`dist/${meta.id}.dotxplugin\`
+- upload \`${meta.id}.dotxplugin\` to the GitHub Release
 
 Recommended release flow:
 
 1. update \`manifest.json\` and \`package.json\` to the release version
 2. commit and push your changes
 3. push a tag such as \`v0.1.0\`
-4. let GitHub Actions build and attach \`dist/${meta.id}.dotx\` to the release
+4. let GitHub Actions build and attach \`dist/${meta.id}.dotxplugin\` to the release
 ` : '';
 
   const README = `# ${meta.name}
 
 A minimal plugin for Dot X (Node + esbuild).
 
-## Package Overview
+## Prerequisites
+- Dot X application running (starts the local plugin server)
+- Node 16+
 
-This project uses one direct npm dependency:
-
-- \`@dotmatrixlabs/dotx-plugin-sdk\` for the runtime SDK and the \`dotx-plugin\` packaging CLI
-
-## Quick start (Node)
+## Quick start
 
 \`\`\`bash
 npm install
@@ -344,18 +343,33 @@ npm start
 
 Ensure the Dot X app is running before starting the plugin.
 
+## Development workflow
+- Edit \`main.ts\` and save; run \`npm run build\` then \`npm start\` to pick up changes
+- Watch logs in the Dot X app and in \`plugin.log\` (created next to your files)
+- Implement your plugin logic inside the \`onLoad()\` method
+
+### Common tasks
+
+| Command | What it does |
+|---|---|
+| \`npm install\` | Install dependencies (run once after cloning) |
+| \`npm run build\` | Compile \`main.ts\` → \`main.js\` via esbuild |
+| \`npm start\` | Run the compiled plugin |
+| \`npm run package\` | Build and create \`dist/${meta.id}.dotxplugin\` |
+
 ## Marketplace Packaging
 
 \`\`\`bash
 npm run package
 \`\`\`
 
-This creates \`dist/${meta.id}.dotx\` with:
+This bundles \`main.ts\` into \`main.js\` using esbuild, then creates \`dist/${meta.id}.dotxplugin\`. The archive is fully self-contained and ready to upload to the Dot X Marketplace.
 
+The package includes:
 - \`manifest.json\`
-- the file declared by \`manifest.main\`
-- optional \`assets/\`, \`data/\`, and \`bin/\`
-- any extra paths listed in \`manifest.json\` under \`packaging.include\`
+- The file declared by \`manifest.main\`
+- Optional \`assets/\`, \`data/\`, and \`bin/\`
+- Any extra paths listed under \`manifest.json\` → \`packaging.include\`
 
 Example:
 
@@ -366,9 +380,30 @@ Example:
   }
 }
 \`\`\`
-
 ${releaseSection}
-See Deno alternative in docs if preferred.
+## File structure
+
+\`\`\`
+manifest.json   # Plugin metadata (id, name, entry file)
+main.ts         # Plugin entrypoint (uses runPlugin from the SDK)
+main.js         # Compiled output (generated by npm run build)
+package.json    # npm scripts and dependencies
+tsconfig.json   # TypeScript configuration
+.gitignore      # Useful ignores (dist/, node_modules/, plugin.log)
+README.md       # This file
+\`\`\`
+
+## Troubleshooting
+- Run \`npm install\` and \`npm run build\` before \`npm start\`
+- Ensure the Dot X app is running before starting the plugin
+- If connection fails, the SDK will retry and print detailed hints
+- Check firewall/antivirus if timeouts persist
+
+## Learn more
+- [Getting Started](https://docs.dotmatrixlabs.com/plugin-sdk/getting-started/first-plugin)
+- [Examples](https://docs.dotmatrixlabs.com/plugin-sdk/examples)
+- [Manifest reference](https://docs.dotmatrixlabs.com/plugin-sdk/manifest)
+- [SDK Reference](https://docs.dotmatrixlabs.com/plugin-sdk/sdk-reference)
 `;
 
   const files = {
