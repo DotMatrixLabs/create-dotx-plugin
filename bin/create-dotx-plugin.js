@@ -178,8 +178,8 @@ Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide 
 
 - resolve the release version from the tag or workflow input
 - validate marketplace-required manifest fields
-- create \`dist/plugin.zip\`
-- upload \`plugin.zip\` to the GitHub Release
+- create \`dist/${meta.id}.dotx\`
+- upload \`${meta.id}.dotx\` to the GitHub Release
 ` : '';
 
   const README = `# ${meta.name}
@@ -216,7 +216,7 @@ This runs \`main.ts\` with all permissions and connects to the Dot X plugin serv
 deno task package
 \`\`\`
 
-This bundles \`main.ts\` and all dependencies into \`dist/main.js\` using esbuild, then creates \`dist/plugin.zip\`. The zip is fully self-contained
+This bundles \`main.ts\` and all dependencies into \`dist/main.js\` using esbuild, then creates \`dist/${meta.id}.dotx\`. The file is fully self-contained
 
 ${releaseSection}
 
@@ -313,15 +313,15 @@ Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide 
 - verify the tag matches \`package.json\` and \`manifest.json\`
 - validate marketplace-required manifest fields
 - build the file referenced by \`manifest.main\`
-- create \`dist/plugin.zip\`
-- upload \`plugin.zip\` to the GitHub Release
+- create \`dist/${meta.id}.dotx\`
+- upload \`${meta.id}.dotx\` to the GitHub Release
 
 Recommended release flow:
 
 1. update \`manifest.json\` and \`package.json\` to the release version
 2. commit and push your changes
 3. push a tag such as \`v0.1.0\`
-4. let GitHub Actions build and attach \`dist/plugin.zip\` to the release
+4. let GitHub Actions build and attach \`dist/${meta.id}.dotx\` to the release
 ` : '';
 
   const README = `# ${meta.name}
@@ -350,7 +350,7 @@ Ensure the Dot X app is running before starting the plugin.
 npm run package
 \`\`\`
 
-This creates \`dist/plugin.zip\` with:
+This creates \`dist/${meta.id}.dotx\` with:
 
 - \`manifest.json\`
 - the file declared by \`manifest.main\`
