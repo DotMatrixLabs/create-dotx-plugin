@@ -1,7 +1,7 @@
 name: Release Plugin
 run-name: >-
   Release ${{ github.event_name == 'workflow_dispatch'
-    && format('v{0}', inputs.version)
+    && (startsWith(inputs.version, 'v') && inputs.version || format('v{0}', inputs.version))
     || github.ref_name }}
 
 on:
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Plugin version to release, without the leading v
+        description: Plugin version to release, with or without the leading v
         required: true
         type: string
 
@@ -32,11 +32,12 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
+            RAW_VERSION="${{ inputs.version }}"
+            VERSION="${RAW_VERSION#[vV]}"
             TAG="v${VERSION}"
           else
             TAG="${GITHUB_REF_NAME}"
-            VERSION="${TAG#v}"
+            VERSION="${TAG#[vV]}"
           fi
 
           if [ -z "${VERSION}" ]; then

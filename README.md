@@ -47,6 +47,7 @@ Deno templates import `@dotmatrixlabs/dotx-plugin-sdk` through Deno's `npm:` sup
 - `deno task package`
 
 The shared release workflow auto-detects whether the project uses Deno or Node.
+When run manually, the workflow accepts versions with or without a leading `v`.
 
 ## Typical Node Workflow
 

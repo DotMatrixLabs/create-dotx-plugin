@@ -174,7 +174,7 @@ function denoTemplates(meta, { includeReleaseWorkflow = true } = {}) {
 
 This template includes a GitHub Actions workflow at \`.github/workflows/release-plugin.yml\`.
 
-Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide the version, and GitHub Actions will:
+Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide the version with or without a leading \`v\`, and GitHub Actions will:
 
 - resolve the release version from the tag or workflow input
 - validate marketplace-required manifest fields
@@ -267,10 +267,61 @@ runPlugin(HelloWorld);
     'deno.json': JSON.stringify({
       tasks: {
         start: 'deno run --allow-all main.ts',
-        build: 'deno run --allow-all --node-modules-dir=none npm:esbuild main.ts --bundle --platform=node --format=esm --external:npm:@dotmatrixlabs/dotx-plugin-sdk --outfile=dist/main.js',
+        build: 'deno run --allow-all build.ts',
         package: 'deno task build && npx @dotmatrixlabs/dotx-plugin-sdk@latest package'
-      }
+      },
+      compilerOptions: { lib: ['deno.window'] },
+      nodeModulesDir: 'auto'
     }, null, 2) + '\n',
+    'build.ts': `// Bundles the plugin into a self-contained \`dist/main.js\` — no npm install needed at runtime.
+// The SDK and all npm dependencies are inlined; only Node built-ins (node:fs, etc.) stay external.
+import * as esbuild from "npm:esbuild";
+import { denoPlugins } from "jsr:@luca/esbuild-deno-loader@^0.11.1";
+import { builtinModules } from "node:module";
+
+const nodeBuiltins = new Set([
+  ...builtinModules,
+  ...builtinModules.map((m) => \`node:\${m}\`),
+]);
+
+// Some bundled deps import Node built-ins without the \`node:\` prefix; rewrite them here.
+const nodeBuiltinPrefix: esbuild.Plugin = {
+  name: "node-builtin-prefix",
+  setup(build) {
+    build.onResolve({ filter: /.*/ }, (args) => {
+      if (nodeBuiltins.has(args.path)) {
+        return { path: \`node:\${args.path.replace(/^node:/, "")}\`, external: true };
+      }
+      return null;
+    });
+  },
+};
+
+const result = await esbuild.build({
+  plugins: [
+    nodeBuiltinPrefix,
+    ...denoPlugins({ configPath: Deno.realPathSync("./deno.json") }),
+  ],
+  entryPoints: ["./main.ts"],
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  outfile: "./dist/main.js",
+  // Provide \`require\` so dynamic require() calls in bundled CJS deps resolve at runtime.
+  banner: {
+    js: "import { createRequire as __cr } from 'node:module';\\nconst require = __cr(import.meta.url);",
+  },
+  logLevel: "info",
+});
+
+if (result.errors.length > 0) {
+  console.error(\`Build failed with \${result.errors.length} error(s)\`);
+  Deno.exit(1);
+}
+
+console.log("Bundled plugin -> dist/main.js");
+await esbuild.stop();
+`,
     '.gitignore': `dist/\nplugin.log\n.DS_Store\n`,
     'README.md': README
   };
@@ -309,7 +360,7 @@ function nodeTemplates(meta, { includeReleaseWorkflow = true } = {}) {
 
 This template includes a GitHub Actions workflow at \`.github/workflows/release-plugin.yml\`.
 
-Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide the version, and GitHub Actions will:
+Push a version tag such as \`v0.1.0\`, or run the workflow manually and provide the version with or without a leading \`v\`, and GitHub Actions will:
 
 - verify the tag matches \`package.json\` and \`manifest.json\`
 - validate marketplace-required manifest fields
