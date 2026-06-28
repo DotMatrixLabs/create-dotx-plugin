@@ -41,15 +41,11 @@ jobs:
         run: |
           unset NODE_AUTH_TOKEN
           npm config delete //registry.npmjs.org/:_authToken 2>/dev/null || true
-          echo "=== npm config ==="
           npm config list
-          echo "=== npm whoami ==="
           npm whoami --registry https://registry.npmjs.org 2>&1 || true
-          echo "=== publishing ==="
           npm publish --access public --provenance --loglevel verbose
-        continue-on-error: true
 
-      - name: Show npm debug log on failure
+      - name: Show npm debug log
         if: always()
         run: |
           LOG=$(ls /home/runner/.npm/_logs/*.log 2>/dev/null | tail -1)
