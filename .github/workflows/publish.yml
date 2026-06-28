@@ -22,6 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Verify tag matches package version
         if: github.ref_type == 'tag'
@@ -38,15 +39,6 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish to npm
-        run: |
-          unset NODE_AUTH_TOKEN
-          npm config delete //registry.npmjs.org/:_authToken 2>/dev/null || true
-          npm config list
-          npm whoami --registry https://registry.npmjs.org 2>&1 || true
-          npm publish --access public --provenance --loglevel verbose
-
-      - name: Show npm debug log
-        if: always()
-        run: |
-          LOG=$(ls /home/runner/.npm/_logs/*.log 2>/dev/null | tail -1)
-          if [ -n "$LOG" ]; then cat "$LOG"; fi
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
